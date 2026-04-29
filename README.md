@@ -49,7 +49,7 @@ reconciliation, and performance attribution.
 
 ```mermaid
 flowchart TD
-    A["Historical Data Replay"] --> B["Signal Generators"]
+    A["Data Replay"] --> B["Signal Generators"]
     B --> C["Portfolio Layer<br/>position lifecycle + netting"]
     C --> D["Execution Layer<br/>order state machine"]
     D --> E["Mock Broker<br/>simulated fills + rejects"]

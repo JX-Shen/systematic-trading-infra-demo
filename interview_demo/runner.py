@@ -1,8 +1,7 @@
 from __future__ import annotations
 
+import os
 import sys
-import termios
-import tty
 from datetime import datetime
 from itertools import count
 from typing import Callable
@@ -47,6 +46,24 @@ class Stepper:
         if not sys.stdin.isatty():
             input("Press Enter to continue...")
             return "\n"
+
+        if os.name == "nt":
+            return self._read_windows_key()
+        return self._read_posix_key()
+
+    def _read_windows_key(self) -> str:
+        import msvcrt
+
+        key = msvcrt.getwch()
+        print()
+        if key == "\x00" or key == "\xe0":
+            msvcrt.getwch()
+            return ""
+        return key
+
+    def _read_posix_key(self) -> str:
+        import termios
+        import tty
 
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
