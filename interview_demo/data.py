@@ -7,14 +7,14 @@ from pathlib import Path
 from interview_demo.models import SYMBOL, Bar
 
 
-CSV_PATH = Path(__file__).parent / "data" / "brent_c1_5m_march.csv"
+CSV_PATH = Path(__file__).parent / "data" / "market_fixture_5m.csv"
 
 
-def load_march_brent_bars() -> tuple[list[Bar], str]:
-    """Load local Brent C1 5-minute March data, with a deterministic fallback."""
+def load_fixture_bars() -> tuple[list[Bar], str]:
+    """Load a local 5-minute fixture CSV, with a deterministic fallback."""
     if CSV_PATH.exists():
         return _load_csv(CSV_PATH), f"local csv: {CSV_PATH}"
-    return _fixture_bars(), "deterministic March Brent C1 5m fixture"
+    return _fixture_bars(), "deterministic local 5m market fixture"
 
 
 def _load_csv(path: Path) -> list[Bar]:
@@ -52,7 +52,7 @@ def _parse_timestamp(value: str) -> datetime:
 
 
 def _fixture_bars() -> list[Bar]:
-    # Hand-shaped March 5-minute bars. The path is deterministic by design:
+    # Hand-shaped 5-minute bars. The path is deterministic by design:
     # it triggers momentum, mean-reversion, reversal, netting, and exits.
     closes = [
         82.10,

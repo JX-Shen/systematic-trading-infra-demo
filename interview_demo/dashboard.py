@@ -39,7 +39,7 @@ class DashboardState:
 
 
 class DemoDashboard:
-    """Fixed-position Rich dashboard for the interview demo."""
+    """Fixed-position Rich operator console for the proof artifact."""
 
     def __init__(self, refresh_per_second: int = 12) -> None:
         self.state = DashboardState()
@@ -203,7 +203,7 @@ class DemoDashboard:
         grid.add_column(ratio=1)
         grid.add_column(ratio=1)
         grid.add_row(
-            Text("Interview Trading Demo", style="bold cyan"),
+            Text("Trading Infrastructure Proof", style="bold cyan"),
             Text(f"Bars: {self.state.bars_count} | {self.state.start} -> {self.state.end}", style="white"),
             Text(self.state.status, style="bold yellow"),
         )
@@ -261,12 +261,12 @@ class DemoDashboard:
         table = Table(expand=True, box=box.SIMPLE_HEAVY)
         table.add_column("Time", style="cyan", no_wrap=True, width=5)
         table.add_column("Target", justify="right", no_wrap=True)
-        table.add_column("Broker", justify="right", no_wrap=True)
+        table.add_column("Provider", justify="right", no_wrap=True)
         table.add_column("Order Placed", no_wrap=True)
         rows = self.state.portfolio_rows or [("-", "-", "-", "-")]
         for row in self._pad_rows(rows, 4):
             table.add_row(*row)
-        return Panel(table, title="Portfolio Workspace (Target | Broker | Order)", border_style="magenta")
+        return Panel(table, title="Portfolio Workspace (Target | Provider | Order)", border_style="magenta")
 
     def _activity_panel(self) -> Panel:
         table = Table(expand=True, box=box.SIMPLE_HEAVY)
@@ -308,7 +308,7 @@ class DemoDashboard:
             recon = Table(title="5-minute Recon / PnL", expand=True, box=box.SIMPLE_HEAVY)
             recon.add_column("Time", style="cyan", no_wrap=True)
             recon.add_column("Target", justify="right", no_wrap=True)
-            recon.add_column("Broker", justify="right", no_wrap=True)
+            recon.add_column("Provider", justify="right", no_wrap=True)
             recon.add_column("Diff", justify="right", no_wrap=True)
             recon.add_column("Status", no_wrap=True)
             recon.add_column("Mark", justify="right", no_wrap=True)

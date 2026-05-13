@@ -5,4 +5,8 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-interview/
+artifacts/
+interview/*
+!interview/
+!interview/architecture.md
+!interview/talk-track.md

@@ -1,365 +1,181 @@
-# Systematic Trading Infrastructure Demo
+# Trading Infrastructure Proof Artifact
 
-A self-contained Python demo of an end-to-end automated trading workflow:
-historical replay, signal generation, portfolio netting, mock execution,
-reconciliation, and performance reporting.
+This repository is a public, anonymized proof artifact for trading
+infrastructure design judgment. It runs locally and shows how strategy intent,
+portfolio state, risk decisions, provider-confirmed state, reconciliation, and
+trace review can stay separated by explicit boundaries.
 
-This project is about production trading system design, not strategy alpha. The
-strategies are intentionally simple so the architecture stays visible.
+The strategies are intentionally simple. The point is not alpha; the point is
+state ownership, failure handling, and operator-visible evidence.
 
 ![Step-through dashboard screenshot](assets/demo-dashboard.png)
 
-## Purpose
+## What This Proves
 
-This repository is a reviewer-friendly proof point for how I think about
-systematic trading infrastructure. It is meant to be easy to inspect, easy to
-run, and concrete enough to support a technical conversation about the boundary
-between research, portfolio state, execution, reconciliation, and operations.
+- Deterministic local market-fixture replay through a small event loop
+- Strategy signal generation that emits intent without mutating portfolio state
+- Per-strategy position lifecycle and cross-strategy netting
+- Pre-routing risk decisions through `RiskGate`
+- Provider adapter behavior for fills, rejects, partial fills, and unexpected state
+- Provider-confirmed state tracked separately from internal target state
+- Reconciliation reports with target, provider state, diff, status, suspected source, and related event ids
+- Ordered JSONL traces written to `artifacts/latest-run/events.jsonl`
+- Trace replay that reconstructs final provider-confirmed position from callbacks
 
-If you only have two minutes:
+## What This Does Not Prove
 
-1. Look at the dashboard screenshot above.
-2. Skim the architecture section below.
-3. Run `python3 demo.py full` to see the full replay.
-4. Run `python3 demo.py netting` and `python3 demo.py reconciliation` to see two
-   production-relevant boundaries in isolation.
-
-The strategies are dummy strategies. The proof point is the workflow: replayable
-inputs, stable intent boundaries, broker-confirmed state, internal netting,
-reconciliation, and performance attribution.
-
-## What This Shows
-
-- Historical 5-minute market data replay through a deterministic event loop
-- Independent strategy signal generation
-- Per-strategy position lifecycle and cross-strategy portfolio netting
-- Explicit order state management through a mock broker boundary
-- Target-versus-broker reconciliation
-- PnL, drawdown, win rate, and per-strategy attribution
-
-## What This Is Not
-
-- Not investment advice
-- Not a profitable trading strategy
-- Not connected to a real broker or exchange
-- Not HFT or sub-millisecond infrastructure
-- Not proprietary employer code or data
+- It is not investment advice.
+- It is not a profitable strategy.
+- It is not connected to a real service provider.
+- It is not a reusable production trading stack.
+- It does not disclose vendor names, provider names, middleware names, production topology, real symbols, or proprietary scale.
+- It does not include deployment, credentials, persistent storage, alerting, auth, or live operations.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    A["Data Replay"] --> B["Signal Generators"]
-    B --> C["Portfolio Layer<br/>position lifecycle + netting"]
-    C --> D["Execution Layer<br/>order state machine"]
-    D --> E["Mock Broker<br/>simulated fills + rejects"]
-    E --> D
-    D --> F["Portfolio Updates"]
-    F --> G["Reconciliation<br/>target vs broker-confirmed state"]
-    G --> H["Performance Output<br/>PnL + drawdown + attribution"]
+    A["Local market fixture"] --> B["Strategy signal generators"]
+    B --> C["Portfolio layer<br/>position lifecycle + netting"]
+    C --> D["RiskGate<br/>session, symbol, size, position checks"]
+    D --> E["Execution layer<br/>order state machine"]
+    E --> F["Simulated provider adapter<br/>fills, rejects, partial fills"]
+    F --> E
+    E --> G["Portfolio updates<br/>provider-confirmed fills only"]
+    G --> H["ReconciliationReport<br/>target vs provider-confirmed state"]
+    H --> I["EventLog JSONL trace<br/>review + replay"]
 ```
 
-The production version of this shape would replace the local adapters with live
-market-data capture, a real broker adapter, persistent logs, pre-trade risk
-checks, monitoring, alerting, secrets management, and replay tooling. The main
-point is to keep strategy intent, portfolio state, execution state, and
-reconciliation separated by explicit boundaries.
+The production-shaped idea is simple: strategy intent, portfolio target state,
+risk decisions, provider callbacks, and reconciliation should not share hidden
+state. This repository keeps those responsibilities visible while using local
+fixtures and a simulated provider adapter so it remains safe to publish.
+
+More detail:
+
+- [Architecture](docs/architecture.md)
+- [Failure modes](docs/failure-modes.md)
+- [Reconciliation](docs/reconciliation.md)
+- [Public disclosure](docs/public-disclosure.md)
 
 ## Quick Start
 
-This demo only needs Python and one terminal UI dependency. It does not require
-Redis, broker credentials, market-data subscriptions, databases, or background
-services.
-
-Use Python 3.10 or newer. The code uses postponed annotations for Python 3.9
-compatibility, but Python 3.10+ is the recommended runtime for a clean local
-setup.
-
-### macOS / Linux
-
-1. Open Terminal.
-
-2. Clone the repository and enter the project folder:
-
-```bash
-git clone <repo-url>
-cd systematic-trading-infra-demo
-```
-
-If you downloaded the project as a ZIP file instead, unzip it and `cd` into the
-unzipped folder.
-
-3. Check that Python is installed:
-
-```bash
-python3 --version
-```
-
-Expected result: `Python 3.10.x` or newer.
-
-If `python3` is not found, install Python from
-[python.org](https://www.python.org/downloads/) or through your package manager.
-
-4. Create a virtual environment:
+This runs locally with no credentials, external services, databases, message
+middleware, or service-provider access.
 
 ```bash
 python3 -m venv .venv
-```
-
-5. Activate the virtual environment:
-
-```bash
 source .venv/bin/activate
-```
-
-Expected result: your prompt usually starts with `(.venv)`.
-
-6. Install dependencies:
-
-```bash
-python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
-```
-
-7. Run the demo:
-
-```bash
 python3 demo.py full
 ```
 
-8. Run the interactive dashboard:
+For the fixed operator-console walkthrough:
 
 ```bash
 python3 demo.py full --step
 ```
 
-Use a wide terminal for dashboard mode. Around 160 columns or wider works best.
+Use a wide terminal for console mode.
 
-### Windows PowerShell
-
-1. Open PowerShell.
-
-2. Clone the repository and enter the project folder:
-
-```powershell
-git clone <repo-url>
-cd systematic-trading-infra-demo
-```
-
-If you downloaded the project as a ZIP file instead, unzip it and `cd` into the
-unzipped folder.
-
-3. Check that Python is installed:
-
-```powershell
-py -3 --version
-```
-
-Expected result: `Python 3.10.x` or newer.
-
-If `py` is not found, install Python from
-[python.org](https://www.python.org/downloads/). During installation, enable
-`Add python.exe to PATH`.
-
-4. Create a virtual environment:
-
-```powershell
-py -3 -m venv .venv
-```
-
-5. Activate the virtual environment:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-Expected result: your prompt usually starts with `(.venv)`.
-
-If PowerShell blocks activation, run this once and then activate again:
-
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-```
-
-6. Install dependencies:
-
-```powershell
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-```
-
-7. Run the demo:
-
-```powershell
-python demo.py full
-```
-
-8. Run the interactive dashboard:
-
-```powershell
-python demo.py full --step
-```
-
-Use a wide terminal for dashboard mode. Around 160 columns or wider works best.
-
-### Dashboard Controls
-
-When running `python3 demo.py full --step` or `python demo.py full --step`:
-
-| Key | Behavior |
-| --- | --- |
-| Space | Advance one internal step |
-| Enter | Run one 5-minute market cycle |
-| Esc | Run the rest of the demo |
-
-### Verify The Install
-
-macOS / Linux:
-
-```bash
-python3 demo.py execution
-python3 demo.py reconciliation
-python3 -m unittest discover -s tests
-python3 -m compileall demo.py interview_demo
-```
-
-Windows PowerShell:
-
-```powershell
-python demo.py execution
-python demo.py reconciliation
-python -m unittest discover -s tests
-python -m compileall demo.py interview_demo
-```
-
-All commands should complete without errors.
-
-If `compileall` fails because your Python installation tries to write bytecode
-outside the project directory, use this on macOS / Linux:
-
-```bash
-PYTHONPYCACHEPREFIX=/tmp/trading-demo-pycache python3 -m compileall demo.py interview_demo
-```
-
-Or this on Windows PowerShell:
-
-```powershell
-$env:PYTHONPYCACHEPREFIX="$env:TEMP\trading-demo-pycache"
-python -m compileall demo.py interview_demo
-```
-
-### Troubleshooting
-
-- `ModuleNotFoundError: No module named 'rich'`: activate the virtual environment
-  and run `pip install -r requirements.txt` again.
-- `python3: command not found`: install Python 3.10+ and reopen the terminal.
-- `py` is not recognized on Windows: reinstall Python and enable
-  `Add python.exe to PATH`.
-- Dashboard layout looks cramped: make the terminal wider or run
-  `python3 demo.py full` for the scrolling output mode.
-
-## Focused Scenarios
+## Scenario Guide
 
 ```bash
 python3 demo.py market-signal
 python3 demo.py netting
 python3 demo.py execution
 python3 demo.py reconciliation
+python3 demo.py risk-reject
+python3 demo.py provider-reject
+python3 demo.py partial-fill
+python3 demo.py reconciliation-mismatch
+python3 demo.py trace-replay
+python3 demo.py unexpected-provider-state
 ```
 
-These scenarios isolate the system boundaries that are most useful to discuss:
-market data to signal intent, cross-strategy netting, order state transitions,
-and reconciliation mismatch detection.
+The failure-oriented scenarios are the most useful review path:
 
-## Tests
+| Scenario | Boundary shown |
+| --- | --- |
+| `risk-reject` | Invalid intent is stopped before provider routing. |
+| `provider-reject` | Accepted risk does not imply provider-confirmed execution. |
+| `partial-fill` | Residual quantity remains explicit after a partial callback. |
+| `reconciliation-mismatch` | Target state and provider-confirmed state can diverge and be reported. |
+| `trace-replay` | Provider-confirmed position can be reconstructed from JSONL callback events. |
+| `unexpected-provider-state` | An unexpected callback state is surfaced for reconciliation review. |
 
-The test suite uses Python's built-in `unittest` module, so there is no separate
-test dependency.
+Each run writes the latest trace to:
 
-```bash
-python3 -m unittest discover -s tests
+```text
+artifacts/latest-run/events.jsonl
 ```
 
-On Windows PowerShell:
-
-```powershell
-python -m unittest discover -s tests
-```
+Generated artifacts are intentionally ignored by git.
 
 ## Project Structure
 
 ```text
 demo.py
 interview_demo/
-├── data.py              # local CSV loader + deterministic market fixture
-├── dashboard.py         # Rich Live dashboard for step-through mode
+├── data.py              # local market fixture loader
+├── dashboard.py         # step-through operator console
 ├── strategies.py        # simple signal generators
 ├── portfolio.py         # position lifecycle, netting, attribution
-├── execution.py         # order state machine + mock broker
-├── reconciliation.py    # target vs broker-confirmed state checks
-├── performance.py       # drawdown and Sharpe-like statistics
-└── runner.py            # full demo and focused scenario runners
+├── risk.py              # pre-routing risk gate
+├── execution.py         # order state machine + simulated provider adapter
+├── events.py            # ordered event log + JSONL replay helper
+├── reconciliation.py    # target vs provider-confirmed report
+├── performance.py       # drawdown and summary statistics
+└── runner.py            # full run and focused scenarios
 ```
 
-Private notes are intentionally not part of the public project. Keep the
-published repository focused on the runnable demo and public-safe design notes.
+The package name is historical. Public docs describe the artifact as an
+anonymized trading infrastructure proof, not as a role-specific demo.
 
-## Design Highlights
+## Design Notes
 
-**Research-to-live boundary**
+**Strategy intent is not execution**
 
-Strategies emit intent only. They do not mutate portfolio state and they do not
-talk to execution. That keeps research logic separated from live trading
-consequences.
+Strategies consume replayed market events and emit target intent. They do not
+submit orders, mutate provider state, or mark fills.
 
-**Portfolio as the decision boundary**
+**Portfolio owns target state**
 
-The portfolio layer owns per-strategy position lifecycle, aggregate target state,
-cross-strategy netting, and attribution. If opposing strategy demand nets to
-zero, the system updates internal strategy positions without sending unnecessary
-broker flow.
+The portfolio layer owns per-strategy position lifecycle, aggregate target
+state, internal netting, and attribution. If opposing strategy demand nets to
+zero, the system updates internal strategy positions without provider-bound
+flow.
 
-**Execution as a state machine**
+**Risk rejection and provider rejection are separate**
 
-Submission is not execution. The execution layer tracks explicit order states and
-only treats broker-confirmed fills as position-changing events.
+`RiskGate` evaluates session state, enabled symbols, max order size, and max
+aggregate position before routing. A provider reject happens later, after an
+intent has passed risk and reached the simulated provider adapter.
 
-**Reconciliation as a first-class workflow**
+**Provider-confirmed state is the source for fills**
 
-Monitoring tells you whether the system is alive. Reconciliation tells you
-whether the recorded past is internally consistent. This demo includes both a
-passing final reconciliation and a focused mismatch scenario.
+Submission is not execution. Full position updates are applied only after
+provider-confirmed fills; partial fills remain explicit residual state for
+reconciliation and review.
 
-## Example Output
+**Reconciliation is a workflow**
 
-The full run ends with aggregate reconciliation and performance output:
+Monitoring can show whether a run is alive. Reconciliation checks whether the
+recorded target state and provider-confirmed state agree, then points review
+toward likely sources of drift.
 
-```text
-Reconciliation: PASS
-portfolio position matches broker-confirmed fills
+## Verify
 
-total_pnl              -1,220.00
-max_drawdown           -2,730.00
-sharpe_like                -0.46
-total_strategy_trades         18
-closed_trades                 14
-win_rate                   42.9%
+```bash
+python3 -m unittest discover -s tests
+python3 demo.py full
+python3 demo.py risk-reject
+python3 demo.py provider-reject
+python3 demo.py partial-fill
+python3 demo.py reconciliation-mismatch
+python3 demo.py trace-replay
+python3 demo.py unexpected-provider-state
 ```
-
-Negative PnL is expected in this fixture. The strategies are dummy strategies
-designed to exercise the workflow; the output is meant to support investigation
-of attribution, drawdown, turnover, execution cost, and reconciliation behavior.
-
-## Production Extensions
-
-- Immutable market, signal, order, fill, and broker-callback logs
-- Pre-trade risk checks for position limits, order size, session state, and
-  strategy-level controls
-- Partial fills, cancels, bounded retries, disconnect recovery, and kill-switch
-  behavior
-- Live market-data capture, normalization, storage, and replay
-- Secrets handling, auth, environment separation, deployment, monitoring, and
-  alerting
 
 ## License
 

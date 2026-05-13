@@ -7,7 +7,7 @@ from interview_demo.portfolio import PortfolioManager
 
 
 class PortfolioTests(unittest.TestCase):
-    def test_opposing_strategy_demand_nets_to_zero_broker_flow(self) -> None:
+    def test_opposing_strategy_demand_nets_to_zero_provider_flow(self) -> None:
         portfolio = PortfolioManager()
         signals = [
             Signal("strategy_A", SYMBOL, SignalSide.BUY, "unit test"),
@@ -31,12 +31,12 @@ class PortfolioTests(unittest.TestCase):
         portfolio.apply_intents(
             portfolio.build_intents(open_signal),
             fill_price=82.00,
-            source="broker_fill",
+            source="provider_fill",
         )
         portfolio.apply_intents(
             portfolio.build_intents(close_signal),
             fill_price=83.00,
-            source="broker_fill",
+            source="provider_fill",
         )
 
         self.assertEqual(portfolio.closed_trades, 1)

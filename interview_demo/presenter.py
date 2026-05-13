@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Iterable
 
 from interview_demo.models import Bar, OrderIntent, PositionIntent, Signal
-from interview_demo.reconciliation import ReconciliationResult
+from interview_demo.reconciliation import ReconciliationReport
 
 
 class Presenter:
@@ -67,7 +67,7 @@ class Presenter:
             [
                 ("Signals", "No new signal"),
                 ("Portfolio", "No position change"),
-                ("Execution", "No broker action"),
+                ("Execution", "No provider action"),
             ]
         )
 
@@ -94,7 +94,7 @@ class Presenter:
                 f"{intent.to_qty:+d}",
                 f"{intent.delta_qty:+d}",
             )
-        table.caption = f"net broker order qty = {net_qty:+d}"
+        table.caption = f"net provider order qty = {net_qty:+d}"
         self.console.print(table)
 
     def workspace(self, rows: list[tuple[str, ...]]) -> None:
@@ -117,7 +117,7 @@ class Presenter:
     def internal_netting(self) -> None:
         self.console.print(
             self.Panel(
-                "[bold magenta]Internal netting only[/bold magenta]\nNo broker order required.",
+                "[bold magenta]Internal netting only[/bold magenta]\nNo provider action required.",
                 title="Portfolio Decision",
                 border_style="magenta",
             )
@@ -151,14 +151,25 @@ class Presenter:
         )
         self.console.print(table)
 
-    def reconciliation(self, result: ReconciliationResult) -> None:
+    def reconciliation(self, result: ReconciliationReport) -> None:
         status = "[bold green]PASS[/bold green]" if result.passed else "[bold red]FAIL[/bold red]"
         table = self.Table(title="Reconciliation", box=self.box.SIMPLE_HEAVY)
         table.add_column("Status")
-        table.add_column("Portfolio Pos", justify="right")
-        table.add_column("Broker Pos", justify="right")
+        table.add_column("Target Pos", justify="right")
+        table.add_column("Provider Pos", justify="right")
+        table.add_column("Diff", justify="right")
+        table.add_column("Suspected Source")
         table.add_column("Message")
-        table.add_row(status, f"{result.portfolio_position:+d}", f"{result.broker_position:+d}", result.message)
+        table.add_row(
+            status,
+            f"{result.target_position:+d}",
+            f"{result.provider_state_position:+d}",
+            f"{result.diff:+d}",
+            result.suspected_source,
+            result.message,
+        )
+        if result.related_event_ids:
+            table.caption = f"related event ids: {', '.join(str(event_id) for event_id in result.related_event_ids)}"
         self.console.print(table)
 
     def metrics(self, rows: list[tuple[str, str]]) -> None:

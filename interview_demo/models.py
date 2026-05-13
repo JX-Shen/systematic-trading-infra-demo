@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import Enum
 
 
-SYMBOL = "BRN C1"
+SYMBOL = "FIXTURE-A"
 CONTRACT_MULTIPLIER = 1000
 
 
